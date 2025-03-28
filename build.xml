@@ -1,5 +1,51 @@
 <project name="ant-sample" basedir="." default="build">
 
+<!-- ##########################################################################
+         ####################### target: checkstyle ###############################
+         ########################################################################## -->
+
+    <target name="checkstyle"
+            description="Generates a report of code convention violations."
+            depends="init-checkstyle">
+
+        <!-- See https://checkstyle.org/anttask.html
+             for full options of using checkstyle with ant-->
+
+        <checkstyle config="checkstyle.xml"
+                    failureProperty="checkstyle.failure"
+                    failOnViolation="false">
+            <formatter type="xml" tofile="checkstyle_report.xml"/>
+            <fileset dir="src" includes="**/*.java"/>
+        </checkstyle>
+
+        <!-- secondary example if your classpath already includes checkstyle
+             and you want to include another jar with custom checks that is
+             in a custom location -->
+
+        <checkstyle config="checkstyle.xml"
+                    failOnViolation="false">
+            <formatter type="xml" tofile="checkstyle_report.xml"/>
+            <fileset dir="src" includes="**/*.java"/>
+        </checkstyle>
+    </target>
+
+    <target name="init-checkstyle" depends="resolve">
+
+        <!-- checkstyle itself all dependecies and Sevntu custom checks
+             are retrieved by Ivy (see ivy.xml) into lib folder
+             and will be accessible to checkstyle-->
+        <path id="execution.lib.path">
+            <fileset dir="lib" includes="*.jar"/>
+        </path>
+
+        <!-- loading ant task -->
+        <taskdef name="checkstyle"
+             classname="com.puppycrawl.tools.checkstyle.ant.CheckstyleAntTask"
+             classpathref="execution.lib.path"
+             />
+    </target>
+
+
     <!-- properties -->
     <property name="src.dir"     value="src"/>
     <property name="build.dir"   value="build"/>
