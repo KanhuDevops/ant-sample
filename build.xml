@@ -1,89 +1,104 @@
-<project name="ant-sample" basedir="." default="build">
+<!-- Project definition -->
+<project name="ant-sample" default="compile" basedir=".">
 
+    <!-- Define directories for source, build, and output -->
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="checkstyle.config" value="config/checkstyle.xml"/>
+	<property name="war.name" value="ant-sample.war"/>
 
-<!-- ##########################################################################
-         ####################### target: checkstyle ###############################
-         ########################################################################## -->
-
-    <target name="checkstyle"
-            description="Generates a report of code convention violations."
-            depends="init-checkstyle">
-
-        <!-- See https://checkstyle.org/anttask.html
-             for full options of using checkstyle with ant-->
-
-        <checkstyle config="checkstyle.xml"
-                    failureProperty="checkstyle.failure"
-                    failOnViolation="false">
-            <formatter type="xml" tofile="checkstyle_report.xml"/>
-            <fileset dir="src" includes="**/*.java"/>
-        </checkstyle>
-
-        <!-- secondary example if your classpath already includes checkstyle
-             and you want to include another jar with custom checks that is
-             in a custom location -->
-
-        <checkstyle config="checkstyle.xml"
-                    failOnViolation="false">
-            <formatter type="xml" tofile="checkstyle_report.xml"/>
-            <fileset dir="src" includes="**/*.java"/>
-        </checkstyle>
+    <!-- Initialize the project by ensuring the build and dist directories exist -->
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${dist.dir}"/>
     </target>
 
-    <target name="init-checkstyle" depends="resolve">
-
-        <!-- checkstyle itself all dependecies and Sevntu custom checks
-             are retrieved by Ivy (see ivy.xml) into lib folder
-             and will be accessible to checkstyle-->
-        <path id="execution.lib.path">
-            <fileset dir="lib" includes="*.jar"/>
-        </path>
-
-        <!-- loading ant task -->
-        <taskdef name="checkstyle"
-             classname="com.puppycrawl.tools.checkstyle.ant.CheckstyleAntTask"
-             classpathref="execution.lib.path"
-             />
-    </target>
-
-    <!-- properties -->
-    <property name="src.dir"     value="src"/>
-    <property name="build.dir"   value="build"/>
-    <property name="classes.dir" value="${build.dir}/classes"/>
-    <property name="jar.dir"     value="${build.dir}/jar"/>
-    <property name="doc.dir"     value="doc"/>
-
-    <!-- targets -->
-    <target name="compile" description="compile project">
-        <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false"/>
-    </target>
-
-    <target name="jar" depends="compile" description="generate the distribution jar">
-        <mkdir dir="${jar.dir}"/>
-        <jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
-            <manifest>
-                <attribute name="Main-Class" value="piona.Main"/>
-            </manifest>
-        </jar>
-    </target>
-
-    <target name="run" depends="jar" description="run application">
-        <java jar="${jar.dir}/${ant.project.name}.jar" fork="true"/>
-    </target>
-
-    <target name="build" depends="jar" description="build application"/>
-
-    <target name="doc" description="generate documentation">
-        <mkdir dir="${doc.dir}" />
-        <javadoc destdir="${doc.dir}" sourcepath="${src.dir}"/>
-    </target>
-
-    <target name="clean" description="clean up build files">
+    <!-- Clean the build and dist directories -->
+    <target name="clean" depends="init">
         <delete dir="${build.dir}"/>
-        <delete dir="${doc.dir}" />
+        <delete dir="${dist.dir}"/>
     </target>
 
-    <target name="rebuild" depends="clean,build" description="rebuild application"/>
+    <!-- Compile the Java source files -->
+    <target name="compile" depends="init" description="Compile Java files">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
+            <classpath>
+                <path location="${lib.dir}/checkstyle-8.36-all.jar"/>
+            </classpath>
+        </javac>
+    </target>
 
+    <!-- Run Checkstyle on the Java source files -->
+    <target name="init-checkstyle" description="Initialize Checkstyle properties">
+        <property name="checkstyle.config" value="config/checkstyle.xml"/>
+    </target>
+
+    <target name="checkstyle" depends="init-checkstyle" description="Run Checkstyle">
+        <taskdef name="checkstyle"
+                 classname="com.puppycrawl.tools.checkstyle.Main"
+                 classpath="lib/checkstyle-8.36-all.jar"/>
+
+        <checkstyle config="${checkstyle.config}">
+            <fileset dir="${src.dir}">
+                <include name="**/*.java"/>
+            </fileset>
+        </checkstyle>
+    </target>
+	
+	 <!-- Run tests (if you have any) -->
+    <target name="test" depends="compile" description="Run tests">
+        <!-- Assuming you're using JUnit -->
+        <taskdef resource="org/apache/tools/ant/taskdefs/optional/junit.properties"/>
+        <junit>
+            <classpath>
+                <path location="${lib.dir}/junit-4.13.2.jar"/>
+                <path location="${build.dir}"/>
+            </classpath>
+            <test name="com.example.TestClass"/>
+        </junit>
+    </target>
+	
+	 <!-- Prepare resources for the WAR file (e.g., web, images, css, etc.) -->
+    <target name="prepare-web" depends="compile" description="Prepare web resources">
+        <copy todir="${build.dir}/WEB-INF/classes">
+            <fileset dir="${web.dir}">
+                <exclude name="WEB-INF/**"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- Create the WAR file -->
+    <target name="war" depends="prepare-web, compile" description="Package the web application into a WAR file">
+        <war destfile="${dist.dir}/${war.name}" webxml="${web.dir}/WEB-INF/web.xml">
+            <fileset dir="${build.dir}">
+                <include name="**/*"/>
+            </fileset>
+            <!-- Include external libraries in the WAR file -->
+            <fileset dir="${lib.dir}">
+                <include name="*.jar"/>
+            </fileset>
+            <!-- Include the web directory -->
+            <fileset dir="${web.dir}">
+                <exclude name="WEB-INF/**"/>
+            </fileset>
+        </war>
+    </target>
+
+    <!-- Deploy the WAR file to the server (for example, a local Tomcat instance) -->
+    <target name="deploy" depends="war" description="Deploy the WAR file to the server">
+        <echo message="Deploying ${war.name} to Tomcat..."/>
+        <copy file="${dist.dir}/${war.name}" todir="/path/to/your/tomcat/webapps"/>
+        <!-- Replace "/path/to/your/tomcat/webapps" with your actual Tomcat path -->
+    </target>
+
+    <!-- Full build: clean, compile, package, and deploy -->
+    <target name="full-build" depends="clean, compile, war, deploy" description="Clean, compile, package, and deploy">
+        <echo message="Full build complete, WAR deployed to Tomcat."/>
+    </target>
+	
+	
+	
+	
 </project>
