@@ -1,6 +1,7 @@
 <!-- Project definition -->
 <project name="ant-sample" default="compile" basedir=".">
 
+<<<<<<< HEAD
     <!-- Define directories for source, build, and output -->
     <property name="src.dir" value="src"/>
     <property name="build.dir" value="build"/>
@@ -8,6 +9,45 @@
     <property name="dist.dir" value="dist"/>
     <property name="checkstyle.config" value="config/checkstyle.xml"/>
 	<property name="war.name" value="ant-sample.war"/>
+=======
+<!-- ##########################################################################
+         ####################### target: checkstyle ###############################
+         #########################################################################-->
+
+    <target name="checkstyle"
+            description="Generates a report of code convention violations."
+            depends="init-checkstyle">
+
+        <!-- See https://checkstyle.org/anttask.html
+             for full options of using checkstyle with ant-->
+
+        <checkstyle config="checkstyle.xml"
+                    failureProperty="checkstyle.failure"
+                    failOnViolation="false">
+            <formatter type="xml" tofile="checkstyle_report.xml"/>
+            <fileset dir="src" includes="**/*.java"/>
+        </checkstyle>
+
+        <!-- secondary example if your classpath already includes checkstyle
+             and you want to include another jar with custom checks that is
+             in a custom location -->
+
+        <checkstyle config="checkstyle.xml"
+                    failOnViolation="false">
+            <formatter type="xml" tofile="checkstyle_report.xml"/>
+            <fileset dir="src" includes="**/*.java"/>
+        </checkstyle>
+    </target>
+
+   
+    
+    <!-- properties -->
+    <property name="src.dir"     value="src"/>
+    <property name="build.dir"   value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="jar.dir"     value="${build.dir}/jar"/>
+    <property name="doc.dir"     value="doc"/>
+>>>>>>> 25e1e76fede17f00da300a4390d48fe9c76b0904
 
     <!-- Initialize the project by ensuring the build and dist directories exist -->
     <target name="init">
